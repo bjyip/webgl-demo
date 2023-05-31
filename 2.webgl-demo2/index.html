@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+</body>
+<!-- 在script中建立顶点着色器和片元着色器，glsl es -->
+<script id="vertexShader" type="x-shader/x-vertex">
+  // 顶点着色器
+  attribute vec4 a_Position;
+  attribute float a_PointSize;
+  void main() {
+    gl_Position = a_Position;
+    gl_PointSize = a_PointSize;
+  }
+</script>
+<script id="fragmentShader" type="x-shader/x-fragment">
+  // 片元着色器
+  precision mediump float;
+  uniform vec4 u_FragColor;
+  void main() {
+    gl_FragColor = u_FragColor;
+  }
+</script>
+<script type="module">
+  import { initShaders } from './jsm/Utils.js';
+
+  // 在js中获取canvas画布
+  const canvas = document.getElementById('canvas');
+
+  // 使用canvas 获取webgl 绘图上下文
+  const gl = canvas.getContext('webgl');
+
+  // 在js中获取顶点着色器和片元着色器的文本
+  const vsSource = document.getElementById('vertexShader').innerText;
+  const fsSource = document.getElementById('fragmentShader').innerText;
+
+  // 初始化着色器
+  initShaders(gl, vsSource, fsSource);
+
+  const a_Position = gl.getAttribLocation(gl.program, 'a_Position');
+  const a_PointSize = gl.getAttribLocation(gl.program, 'a_PointSize');
+  const u_FragColor=gl.getUniformLocation(gl.program,'u_FragColor');
+  
+  // 指定将要用来清空绘图区的颜色
+  gl.clearColor(0,0,0,1);
+
+  // 使用之前指定的颜色，清空绘图区
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  const g_points = []
+  canvas.addEventListener('click',function(event){
+    const {clientX,clientY}=event;
+    const {left,top,width,height}=canvas.getBoundingClientRect();
+    const [cssX,cssY]=[
+      clientX-left,
+      clientY-top
+    ];
+    const [halfWidth,halfHeight]=[width/2,height/2];
+    const [xBaseCenter,yBaseCenter]=[cssX-halfWidth,cssY-halfHeight];
+    const yBaseCenterTop=-yBaseCenter;
+    const [x,y]=[xBaseCenter/halfWidth,yBaseCenterTop/halfHeight];
+    const color = new Float32Array([
+      Math.random(),
+      Math.random(),
+      Math.random(),
+      1,
+    ])
+    g_points.push({x,y,z: Math.random()*50,color});
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    g_points.forEach(({x,y,z,color})=>{
+      gl.vertexAttrib2f(a_Position,x,y);
+      gl.vertexAttrib1f(a_PointSize,z);
+      gl.uniform4fv(u_FragColor, color);
+      gl.drawArrays(gl.POINTS, 0, 1);
+    })
+
+  })
+</script>
+</html>
